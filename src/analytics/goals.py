@@ -111,10 +111,16 @@ class GoalAnalytics:
         Returns:
             Dictionary with goal analysis
         """
-        # Calculate current amount
-        current_amount = goal.calculate_current_amount(institutions)
-        progress_percent = goal.calculate_progress_percent(institutions)
-        remaining_amount = goal.calculate_remaining_amount(institutions)
+        # Inactive goals are treated as 100% complete regardless of actual balance.
+        # They have been closed/deactivated so should not show as 0% on charts.
+        if not goal.is_active:
+            current_amount = goal.target_amount
+            progress_percent = 100.0
+            remaining_amount = 0.0
+        else:
+            current_amount = goal.calculate_current_amount(institutions)
+            progress_percent = goal.calculate_progress_percent(institutions)
+            remaining_amount = goal.calculate_remaining_amount(institutions)
         
         # Calculate time metrics
         current_ts = date_utils.get_current_timestamp()

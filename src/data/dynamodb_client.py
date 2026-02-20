@@ -244,6 +244,8 @@ class DynamoDBClient:
             
             goals = []
             for item in response.get('Items', []):
+                raw_linked = item.get('linkedInstitutions', {})
+                completed_at_raw = item.get('completedAt')
                 goal = Goal(
                     user_id=item['userId'],
                     goal_id=item['goalId'],
@@ -253,9 +255,9 @@ class DynamoDBClient:
                     is_completed=item.get('isCompleted', False),
                     is_active=item.get('isActive', True),
                     description=item.get('description'),
-                    linked_institutions=item.get('linkedInstitutions', {}),
+                    linked_institutions={k: float(v) for k, v in raw_linked.items()},
                     linked_transactions=item.get('linkedTransactions', []),
-                    completed_at=item.get('completedAt')
+                    completed_at=int(completed_at_raw) if completed_at_raw is not None else None
                 )
                 goals.append(goal)
             
@@ -289,6 +291,8 @@ class DynamoDBClient:
             if not item:
                 return None
             
+            raw_linked = item.get('linkedInstitutions', {})
+            completed_at_raw = item.get('completedAt')
             return Goal(
                 user_id=item['userId'],
                 goal_id=item['goalId'],
@@ -298,9 +302,9 @@ class DynamoDBClient:
                 is_completed=item.get('isCompleted', False),
                 is_active=item.get('isActive', True),
                 description=item.get('description'),
-                linked_institutions=item.get('linkedInstitutions', {}),
+                linked_institutions={k: float(v) for k, v in raw_linked.items()},
                 linked_transactions=item.get('linkedTransactions', []),
-                completed_at=item.get('completedAt')
+                completed_at=int(completed_at_raw) if completed_at_raw is not None else None
             )
             
         except Exception as e:

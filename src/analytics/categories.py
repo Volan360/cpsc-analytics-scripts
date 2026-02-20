@@ -182,11 +182,14 @@ class CategoryAnalytics:
             reverse=True
         )[:limit]
         
+        total_amount = sum(category_totals.values())
+
         return [
             {
                 'name': category,
                 'amount': round(amount, 2),
-                'rank': i + 1
+                'rank': i + 1,
+                'percentage': round((amount / total_amount * 100), 2) if total_amount > 0 else 0.0
             }
             for i, (category, amount) in enumerate(sorted_categories)
         ]

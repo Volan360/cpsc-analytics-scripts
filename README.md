@@ -238,8 +238,32 @@ AWS_REGION=us-east-1
 
 ### 6. Financial Health Score
 - **Type**: `health`
-- **Metrics**: Composite score (0-100) across multiple dimensions
-- **Charts**: Gauge chart, radar chart
+- **Metrics**: Composite score (0-100) across 5 weighted dimensions:
+  - **Savings Rate** (25%) — Net savings as % of income; 20%+ = 100 pts
+  - **Goal Progress** (25%) — Average completion % across active goals
+  - **Spending Diversity** (20%) — Gini coefficient of spending categories
+  - **Account Utilization** (15%) — % of institutions with recent transactions
+  - **Transaction Regularity** (15%) — Coefficient of variation in daily activity
+- **Ratings**: Excellent (≥90), Good (≥75), Fair (≥60), Poor (≥45), Needs Improvement (<45)
+- **Charts**: Gauge chart (overall score), radar chart (dimension breakdown)
+- **Reports**: Health Score Report Card with score breakdown table and recommendations
+- **Usage**:
+```python
+from src.analytics.health_score import HealthScoreAnalytics
+
+analytics = HealthScoreAnalytics()
+result = analytics.analyze(
+    transactions=transactions,
+    institutions=institutions,
+    goals=goals,
+    period_days=30,
+    include_recommendations=True
+)
+
+print(result['overall_score'])    # e.g. 78.5
+print(result['rating'])           # e.g. 'Good'
+print(result['recommendations'])  # List of improvement tips
+```
 
 ## Testing
 
@@ -312,4 +336,5 @@ For questions or issues, contact the development team.
 ---
 
 **Last Updated**: February 19, 2026
-**Version**: 0.1.0
+**Version**: 0.4.0
+**Test Suite**: 259 tests passing | 86.49% coverage

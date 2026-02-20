@@ -15,7 +15,7 @@ def timestamp_to_datetime(timestamp: int) -> datetime:
     Returns:
         datetime object in UTC
     """
-    return datetime.fromtimestamp(timestamp, tz=timezone.utc)
+    return datetime.fromtimestamp(float(timestamp), tz=timezone.utc)
 
 
 def datetime_to_timestamp(dt: datetime) -> int:
@@ -55,7 +55,7 @@ def timestamp_to_iso(timestamp: int) -> str:
     Returns:
         ISO format date string
     """
-    dt = datetime.fromtimestamp(timestamp, tz=timezone.utc)
+    dt = datetime.fromtimestamp(float(timestamp), tz=timezone.utc)
     return dt.isoformat()
 
 
@@ -85,7 +85,7 @@ def get_month_boundaries(timestamp: int) -> Tuple[int, int]:
     Returns:
         Tuple of (month_start_timestamp, month_end_timestamp)
     """
-    dt = datetime.fromtimestamp(timestamp, tz=timezone.utc)
+    dt = datetime.fromtimestamp(float(timestamp), tz=timezone.utc)
     
     # First day of month
     month_start = datetime(dt.year, dt.month, 1, tzinfo=timezone.utc)
@@ -109,7 +109,7 @@ def group_by_month(timestamps: List[int]) -> dict:
     """
     grouped = {}
     for ts in timestamps:
-        dt = datetime.fromtimestamp(ts, tz=timezone.utc)
+        dt = datetime.fromtimestamp(float(ts), tz=timezone.utc)
         month_key = dt.strftime('%Y-%m')
         if month_key not in grouped:
             grouped[month_key] = []
@@ -130,7 +130,7 @@ def group_by_week(timestamps: List[int]) -> dict:
     """
     grouped = {}
     for ts in timestamps:
-        dt = datetime.fromtimestamp(ts, tz=timezone.utc)
+        dt = datetime.fromtimestamp(float(ts), tz=timezone.utc)
         week_key = dt.strftime('%Y-W%U')
         if week_key not in grouped:
             grouped[week_key] = []
@@ -151,7 +151,7 @@ def group_by_day(timestamps: List[int]) -> dict:
     """
     grouped = {}
     for ts in timestamps:
-        dt = datetime.fromtimestamp(ts, tz=timezone.utc)
+        dt = datetime.fromtimestamp(float(ts), tz=timezone.utc)
         day_key = dt.strftime('%Y-%m-%d')
         if day_key not in grouped:
             grouped[day_key] = []
@@ -186,8 +186,8 @@ def get_months_between(start_timestamp: int, end_timestamp: int) -> int:
     Returns:
         Number of months (approximate)
     """
-    start_dt = datetime.fromtimestamp(start_timestamp, tz=timezone.utc)
-    end_dt = datetime.fromtimestamp(end_timestamp, tz=timezone.utc)
+    start_dt = datetime.fromtimestamp(float(start_timestamp), tz=timezone.utc)
+    end_dt = datetime.fromtimestamp(float(end_timestamp), tz=timezone.utc)
     
     return (end_dt.year - start_dt.year) * 12 + (end_dt.month - start_dt.month)
 
@@ -203,7 +203,7 @@ def format_date(timestamp: int, format_string: str = '%Y-%m-%d') -> str:
     Returns:
         Formatted date string
     """
-    dt = datetime.fromtimestamp(timestamp, tz=timezone.utc)
+    dt = datetime.fromtimestamp(float(timestamp), tz=timezone.utc)
     return dt.strftime(format_string)
 
 
@@ -228,7 +228,7 @@ def add_days(timestamp: int, days: int) -> int:
     Returns:
         New UNIX timestamp
     """
-    dt = datetime.fromtimestamp(timestamp, tz=timezone.utc)
+    dt = datetime.fromtimestamp(float(timestamp), tz=timezone.utc)
     new_dt = dt + timedelta(days=days)
     return int(new_dt.timestamp())
 
@@ -244,7 +244,7 @@ def add_months(timestamp: int, months: int) -> int:
     Returns:
         New UNIX timestamp
     """
-    dt = datetime.fromtimestamp(timestamp, tz=timezone.utc)
+    dt = datetime.fromtimestamp(float(timestamp), tz=timezone.utc)
     
     # Calculate new month and year
     new_month = dt.month + months

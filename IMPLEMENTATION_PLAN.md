@@ -461,24 +461,114 @@ Each module (cash_flow.py, categories.py, etc.) contains:
     * Calculations: 38/38 tests passing (added 8 test classes)
     * Date utilities: 40/40 tests passing (added 17 edge case tests)
 
-### **Phase 3** (Network Analysis - Week 4) 🔜 NEXT
-- [ ] Implement NetworkX graph construction
-- [ ] Centrality calculations
-- [ ] Community detection
-- [ ] Graph visualizations
-- [ ] Integration tests
+### **Phase 3** (Network Analysis - Week 4) ✅ COMPLETED
+- [x] Implement NetworkX graph construction
+  - Financial flow graph (institutions → goals → categories)
+  - Goal-institution graph (bipartite allocation relationships)
+  - Transaction tag network (co-occurrence patterns)
+- [x] Centrality calculations
+  - Degree centrality (connection counts)
+  - Betweenness centrality (shortest path importance)
+  - Closeness centrality (average distance to others)
+  - PageRank (influence measure)
+- [x] Community detection
+  - Greedy modularity optimization
+  - Modularity score calculation
+- [x] Graph analysis utilities
+  - Shortest path finding
+  - Clustering coefficients
+  - Graph serialization (nodes and edges to JSON)
+- [x] Integration tests
+- **Quality Metrics**:
+  - **Test Status**: 162/162 tests passing (100%)
+  - **Code Coverage**: 87.23% (up from 85.83%)
+    * network.py: 97.14% coverage (140 statements, 4 missed)
+  - **Test Breakdown**:
+    * Financial flow graph: 4/4 tests passing
+    * Goal-institution graph: 4/4 tests passing
+    * Tag network: 5/5 tests passing
+    * Centrality metrics: 4/4 tests passing
+    * Community detection: 3/3 tests passing
+    * Shortest path: 3/3 tests passing
+    * Clustering coefficients: 3/3 tests passing
+    * Main analyze method: 5/5 tests passing
+    * Graph serialization: 3/3 tests passing
+  - **New feature**: Network relationship analytics with graph theory metrics
 
-### **Phase 4** (Visualizations - Week 5)
-- [ ] Chart generation (Plotly/Matplotlib)
-- [ ] Report templates
-- [ ] PDF generation
-- [ ] S3 upload integration
+### **Phase 4** (Visualizations - Week 5) ✅ COMPLETED
 
-### **Phase 5** (Lambda Functions - Week 6)
-- [ ] Lambda handler implementation
-- [ ] Local testing with SAM
-- [ ] Packaging script
-- [ ] Deployment automation
+**Quality Metrics**:
+- **Tests Created**: 64 comprehensive tests
+- **Total Tests**: 226 passing (0 failures)
+- **Coverage**: 88.33% overall
+  - charts.py: 94.92% (118 statements)
+  - reports.py: 95.58% (113 statements)
+  - s3_uploader.py: 72.83% (92 statements)
+  - health_score.py: 95.39% (152 statements)
+
+**Delivered Components**:
+- ✅ **ChartGenerator** (759 lines)
+  - 11 chart types: line, bar, pie, area, scatter, stacked bar, heatmap, network, gauge, sankey, radar
+  - Export methods: HTML, PNG/JPEG/SVG/PDF, base64 encoding
+  - Plotly integration with configurable themes
+- ✅ **ReportGenerator** (modified to include health score report)
+  - 5 report types: cash_flow, category, goal, network, health_score
+  - Responsive HTML templates with styled metrics cards
+  - Auto-generated insights based on data patterns
+  - Embedded Plotly charts
+  - `additional_sections` support for custom HTML blocks
+- ✅ **HealthScoreAnalytics** (423 lines)
+  - Composite financial health score (0-100) across 5 weighted dimensions
+  - Savings rate (25%), goal progress (25%), spending diversity (20%), account utilization (15%), transaction regularity (15%)
+  - `calculate_health_score(transactions, institutions, goals)` → overall score + component breakdown
+  - `get_health_recommendations(health_data)` → personalized improvement tips
+  - `compare_periods(current_data, previous_data)` → delta/trend comparison
+  - `analyze()` entry point with optional recommendations
+- ✅ **S3Uploader** (304 lines)
+  - Organized path structure: analytics/{user_id}/{YYYY/MM/DD}/{type}
+  - Presigned URL generation (7-day for charts, 30-day for reports)
+  - List/delete operations for user reports
+  - Full ACL and metadata support
+- ✅ **Dependencies Installed**: jinja2>=3.1.0, kaleido>=0.2.1
+
+**Test Results**: All 226 tests passing in 1.63s
+
+---
+
+### **Phase 5** (Lambda Functions - Week 6) ✅ COMPLETED
+
+**Quality Metrics**:
+- **Tests Created**: 33 comprehensive tests
+- **Total Tests**: 259 passing (0 failures)
+- **Coverage**:
+  - analytics_handler.py: 88.18%
+  - report_handler.py: 68.18%
+
+**Delivered Components**:
+- ✅ **analytics_handler.py** — `POST /api/analytics/generate`
+  - Handles all 6 analytics types: `cash_flow`, `categories`, `goals`, `institutions`, `network`, `health`
+  - Extracts `userId` from Cognito JWT claims in API Gateway event
+  - Validates request body (analyticsType, dateRange format, chronological order)
+  - Initializes `DynamoDBClient` with `ENVIRONMENT` env variable
+  - Passes `options.groupBy` and other options through to analytics modules
+  - Returns structured JSON: `analyticsType`, `userId`, `generatedAt`, `dateRange`, `data`
+  - Fully tested with mocked DynamoDB
+- ✅ **report_handler.py** — `POST /api/analytics/report`
+  - Handles 6 report types: `cash_flow`, `category`, `goal`, `network`, `health_score`, `comprehensive`
+  - Generates charts using `ChartGenerator`, renders HTML via `ReportGenerator`
+  - Uploads finished report to S3 via `S3Uploader.upload_report()`
+  - Returns presigned URL and S3 key in response body
+  - `comprehensive` mode combines all 4 analytics sections in one page
+  - `ANALYTICS_S3_BUCKET` env variable controls target bucket (default: `cpsc-analytics-{env}`)
+  - Tested with mocked DynamoDB, analytics modules, and S3 uploader
+
+**Environment Variables**:
+| Variable | Default | Description |
+|---|---|---|
+| `ENVIRONMENT` | `devl` | Deployment stage (devl/acpt/prod) — controls DynamoDB table suffix |
+| `ANALYTICS_S3_BUCKET` | `cpsc-analytics-{env}` | S3 bucket for report storage |
+
+**Test Results**: All 259 tests passing in 1.66s
 
 ### **Phase 6** (Backend Integration - Week 7)
 - [ ] Update OpenAPI spec

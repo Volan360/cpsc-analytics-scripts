@@ -174,7 +174,7 @@ class TestGoalAnalytics:
         assert result['summary']['active_goals'] == 0
 
     def test_inactive_goal(self, analytics, mock_db_client):
-        """Test handling of inactive goal."""
+        """Inactive goal should show 100% progress and zero remaining amount."""
         base_ts = int(datetime(2024, 1, 1, tzinfo=timezone.utc).timestamp())
         
         inactive_goal = Goal(
@@ -199,6 +199,54 @@ class TestGoalAnalytics:
         
         assert result['summary']['active_goals'] == 0
         assert result['summary']['total_goals'] == 1
+        goal_detail = result['goals'][0]
+        assert goal_detail['progress_percent'] == 100.0
+        assert goal_detail['remaining_amount'] == 0.0
+        assert goal_detail['current_amount'] == 1000.0
+
+    def test_inactive_goal_with_low_balance_shows_100_percent(
+        self, analytics, mock_db_client
+    ):
+        """Inactive goal with a near-zero actual balance should still show 100%."""
+        base_ts = int(datetime(2024, 1, 1, tzinfo=timezone.utc).timestamp())
+
+        inactive_goal = Goal(
+            user_id='user1',
+            goal_id='goal2',
+            name='Old Savings Goal',
+            description='Deactivated goal with low balance',
+            linked_institutions={'inst1': 10},   # 10% of a $50 account = $5 actual
+            target_amount=5000.0,
+            is_completed=False,
+            is_active=False,
+            linked_transactions=[],
+            completed_at=None,
+            created_at=base_ts
+        )
+
+        institution = Institution(
+            user_id='user1',
+            institution_id='inst1',
+            institution_name='Small Account',
+            starting_balance=50.0,
+            current_balance=50.0,
+            created_at=base_ts,
+            allocated_percent=10,
+            linked_goals=['goal2']
+        )
+
+        mock_db_client.get_goals.return_value = [inactive_goal]
+        mock_db_client.get_institutions.return_value = [institution]
+        mock_db_client.get_transactions.return_value = []
+
+        result = analytics.analyze('user1')
+
+        goal_detail = result['goals'][0]
+        # Without the fix this would be 0.1% (5/5000*100); with the fix it must be 100%
+        assert goal_detail['progress_percent'] == 100.0
+        assert goal_detail['remaining_amount'] == 0.0
+        assert goal_detail['current_amount'] == 5000.0
+        assert goal_detail['is_active'] is False
 
     def test_goal_without_institutions(self, analytics, mock_db_client):
         """Test goal with no linked institutions."""
