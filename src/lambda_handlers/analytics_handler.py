@@ -88,8 +88,9 @@ def _validate_request(body: Dict[str, Any]) -> Optional[str]:
             f"Must be one of: {', '.join(sorted(ANALYTICS_TYPES))}"
         )
 
-    # dateRange is not required for 'goals' (snapshot) or 'institutions' (optional time window)
-    if analytics_type not in ('goals', 'institutions'):
+    # dateRange is not required for 'goals' (snapshot), 'institutions' (optional time window),
+    # or 'network' (all-time graph, not date-scoped)
+    if analytics_type not in ('goals', 'institutions', 'network'):
         date_range = body.get('dateRange', {})
         start_date = date_range.get('start')
         end_date = date_range.get('end')
@@ -150,7 +151,7 @@ def _run_analytics(
 
     elif analytics_type == 'network':
         analytics = NetworkAnalytics(db_client)
-        return analytics.analyze(user_id, start_date, end_date)
+        return analytics.analyze(user_id, graph_type='goal_institution')
 
     elif analytics_type == 'health':
         # HealthScoreAnalytics works with raw data (no DynamoDB dependency)

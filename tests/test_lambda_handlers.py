@@ -155,11 +155,16 @@ class TestAnalyticsValidation:
         assert validate_analytics(body) is None
 
     def test_other_types_still_require_date_range(self):
-        """All non-goals types must still provide dateRange."""
-        for analytics_type in ['cash_flow', 'categories', 'institutions', 'network', 'health']:
+        """Non-goals and non-network types must still provide dateRange."""
+        for analytics_type in ['cash_flow', 'categories', 'health']:
             body = {'analyticsType': analytics_type}
             error = validate_analytics(body)
             assert error is not None, f"Expected error for {analytics_type} without dateRange"
+
+    def test_network_does_not_require_date_range(self):
+        """Network analytics is all-time and should not require dateRange."""
+        body = {'analyticsType': 'network'}
+        assert validate_analytics(body) is None
 
 
 # ---------------------------------------------------------------------------

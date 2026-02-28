@@ -136,8 +136,8 @@ def _validate_request(body: Dict[str, Any]) -> Optional[str]:
             f"Must be one of: {', '.join(sorted(REPORT_TYPES))}"
         )
 
-    # dateRange is not required for 'goal' (snapshot — not time-windowed)
-    if report_type != 'goal':
+    # dateRange is not required for 'goal' (snapshot) or 'network' (all-time)
+    if report_type not in ('goal', 'network'):
         date_range = body.get('dateRange', {})
         start_date = date_range.get('start')
         end_date = date_range.get('end')
@@ -240,7 +240,7 @@ def _generate_single_report(
 
     elif report_type == 'network':
         analytics = NetworkAnalytics(db_client)
-        data = analytics.analyze(user_id, start_date, end_date)
+        data = analytics.analyze(user_id, graph_type='goal_institution')
         charts = []
         nodes = data.get('nodes', [])
         edges = data.get('edges', [])
@@ -252,39 +252,71 @@ def _generate_single_report(
                     title='Financial Network Graph',
                 )
             )
-        # Sankey diagram — flows with a positive weight (spending / allocation)
+
+        # Build id → display label lookup (append type so same-named nodes are distinct)
+        def _node_label(n):
+            attrs = n.get('attributes', {})
+            name = attrs.get('name') or str(n['id'])
+            node_type = attrs.get('type', '')
+            if node_type in ('institution', 'goal', 'category'):
+                return f"{name} ({node_type})"
+            return name
+
+        id_to_name = {str(n['id']): _node_label(n) for n in nodes}
+
+        # --- Section 1: institution → goal flows from graph edges ---
         sankey_edges = [e for e in edges if e.get('attributes', {}).get('weight', 0) > 0]
         logger.info(f"Network: {len(nodes)} nodes, {len(edges)} edges, {len(sankey_edges)} weighted edges for Sankey")
-        if sankey_edges:
-            # Build id → display name lookup from node attributes (normalise keys to str)
-            # Append node type in parentheses so same-named nodes (e.g. institution + goal
-            # both called "asdf") resolve to distinct Sankey labels.
-            def _node_label(n):
-                attrs = n.get('attributes', {})
-                name = attrs.get('name') or str(n['id'])
-                node_type = attrs.get('type', '')
-                if node_type in ('institution', 'goal', 'category'):
-                    return f"{name} ({node_type})"
-                return name
 
-            id_to_name = {str(n['id']): _node_label(n) for n in nodes}
-            logger.debug(f"Sankey id_to_name: {id_to_name}")
-            logger.debug(f"Sankey edges sample: {sankey_edges[:3]}")
-            sources = [id_to_name.get(str(e['source']), str(e['source'])) for e in sankey_edges]
-            targets = [id_to_name.get(str(e['target']), str(e['target'])) for e in sankey_edges]
-            values = [float(e['attributes']['weight']) for e in sankey_edges]
-            logger.info(f"Sankey resolved — sources: {sources}, targets: {targets}, values: {values}")
+        sankey_sources = [id_to_name.get(str(e['source']), str(e['source'])) for e in sankey_edges]
+        sankey_targets = [id_to_name.get(str(e['target']), str(e['target'])) for e in sankey_edges]
+        sankey_values  = [float(e['attributes']['weight']) for e in sankey_edges]
+
+        # --- Section 2: institution → spending-category flows for non-goal transactions ---
+        # Build institution-id → display label map from the already-fetched nodes
+        inst_label_by_id = {
+            str(n['id']).replace('inst_', ''): _node_label(n)
+            for n in nodes
+            if n.get('attributes', {}).get('type') == 'institution'
+        }
+
+        all_txns = db_client.get_all_user_transactions(user_id)
+        spending: Dict[tuple, float] = {}
+        for txn in all_txns:
+            # Skip goal-completion transactions — they are already represented
+            # in Section 1 via the goal-institution graph edges.
+            if txn.type != 'WITHDRAWAL':
+                continue
+            if txn.tags and 'goal-completion' in txn.tags:
+                continue
+            inst_label = inst_label_by_id.get(txn.institution_id, f"{txn.institution_id} (institution)")
+            tags_list = txn.tags if txn.tags else ['Uncategorized']
+            for tag in tags_list:
+                key = (inst_label, tag)
+                spending[key] = spending.get(key, 0.0) + txn.amount
+
+        for (inst_label, tag), amount in spending.items():
+            sankey_sources.append(inst_label)
+            sankey_targets.append(tag)
+            sankey_values.append(amount)
+
+        logger.info(
+            f"Sankey totals — {len(sankey_edges)} goal flows, "
+            f"{len(spending)} non-goal spending flows"
+        )
+
+        if sankey_sources:
             charts.append(
                 chart_gen.create_sankey_diagram(
-                    sources=sources,
-                    targets=targets,
-                    values=values,
-                    title='Financial Flow (Institution → Goal / Category)',
+                    sources=sankey_sources,
+                    targets=sankey_targets,
+                    values=sankey_values,
+                    title='Financial Flow (Institution → Goals & Spending)',
                 )
             )
         else:
-            logger.warning("No weighted edges found — Sankey diagram skipped. Edge attributes sample: %s",
-                           [e.get('attributes') for e in edges[:3]])
+            logger.warning("No flows found — Sankey diagram skipped.")
+
         return report_gen.generate_network_report(data, charts, user_name=user_name)
 
     elif report_type == 'health_score':
