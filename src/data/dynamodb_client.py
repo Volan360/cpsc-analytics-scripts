@@ -141,30 +141,38 @@ class DynamoDBClient:
             List of Transaction objects
         """
         try:
-            # Build key condition
+            # Build key condition — only the partition key.
+            # NOTE: `createdAt` (the sort key) is always set to insertion time, NOT the
+            # transaction's actual date.  Filtering by createdAt would exclude historical
+            # test transactions inserted recently.  We filter by `transactionDate` instead,
+            # using a FilterExpression applied after the partition-key scan.
             key_condition = Key('institutionId').eq(institution_id)
-            
-            # Add date range to key condition if provided
-            if start_date and end_date:
-                key_condition &= Key('createdAt').between(start_date, end_date)
-            elif start_date:
-                key_condition &= Key('createdAt').gte(start_date)
-            elif end_date:
-                key_condition &= Key('createdAt').lte(end_date)
-            
+
+            # Build filter expressions
+            filter_parts = []
+            if start_date:
+                filter_parts.append(Attr('transactionDate').gte(start_date))
+            if end_date:
+                filter_parts.append(Attr('transactionDate').lte(end_date))
+            if user_id:
+                filter_parts.append(Attr('userId').eq(user_id))
+
+            combined_filter = None
+            for part in filter_parts:
+                combined_filter = part if combined_filter is None else combined_filter & part
+
             # Build query parameters
             query_params = {
                 'KeyConditionExpression': key_condition,
-                'ScanIndexForward': False  # Sort descending (newest first)
+                'ScanIndexForward': False  # Sort descending (newest createdAt first)
             }
-            
-            # Add filter expression for user_id if provided
-            if user_id:
-                query_params['FilterExpression'] = Attr('userId').eq(user_id)
-            
-            # Add limit if provided
-            if limit:
-                query_params['Limit'] = limit
+
+            if combined_filter is not None:
+                query_params['FilterExpression'] = combined_filter
+
+            # Note: limit is intentionally NOT applied here because DynamoDB evaluates
+            # Limit before FilterExpression, which would silently drop matching items.
+            # Callers that need a hard cap should slice the returned list themselves.
             
             response = self.transactions_table.query(**query_params)
             
@@ -182,7 +190,28 @@ class DynamoDBClient:
                     description=item.get('description')
                 )
                 transactions.append(transaction)
-            
+
+            # Handle DynamoDB pagination
+            while 'LastEvaluatedKey' in response:
+                query_params['ExclusiveStartKey'] = response['LastEvaluatedKey']
+                response = self.transactions_table.query(**query_params)
+                for item in response.get('Items', []):
+                    transactions.append(Transaction(
+                        institution_id=item['institutionId'],
+                        created_at=int(item['createdAt']),
+                        transaction_id=item['transactionId'],
+                        user_id=item['userId'],
+                        type=item['type'],
+                        amount=float(item['amount']),
+                        transaction_date=int(item.get('transactionDate', item['createdAt'])),
+                        tags=item.get('tags', []),
+                        description=item.get('description')
+                    ))
+
+            # Apply post-filter limit in Python (safe after FilterExpression is evaluated)
+            if limit:
+                transactions = transactions[:limit]
+
             logger.info(f"Retrieved {len(transactions)} transactions for institution {institution_id}")
             return transactions
             
