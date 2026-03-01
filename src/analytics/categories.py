@@ -80,7 +80,7 @@ class CategoryAnalytics:
         category_averages = self._calculate_category_averages(category_groups)
         
         # Find top categories
-        top_categories = self._get_top_categories(category_totals, limit=constants.MAX_CATEGORIES_DISPLAY)
+        top_categories = self._get_top_categories(category_totals, category_counts, limit=constants.MAX_CATEGORIES_DISPLAY)
         
         # Calculate category trends over time
         trends = self._calculate_category_trends(transactions)
@@ -165,17 +165,21 @@ class CategoryAnalytics:
                 averages[category] = calculations.calculate_average(amounts)
         return averages
     
-    def _get_top_categories(self, category_totals: Dict[str, float], limit: int = 10) -> List[Dict]:
+    def _get_top_categories(self, category_totals: Dict[str, float], category_counts: Dict[str, int] = None, limit: int = 10) -> List[Dict]:
         """
         Get top categories by total amount.
         
         Args:
             category_totals: Dictionary of category totals
+            category_counts: Dictionary of transaction counts per category
             limit: Maximum number of categories to return
             
         Returns:
             List of category dictionaries sorted by amount
         """
+        if category_counts is None:
+            category_counts = {}
+
         sorted_categories = sorted(
             category_totals.items(),
             key=lambda x: x[1],
@@ -186,9 +190,9 @@ class CategoryAnalytics:
 
         return [
             {
-                'name': category,
-                'amount': round(amount, 2),
-                'rank': i + 1,
+                'category': category,
+                'total': round(amount, 2),
+                'count': category_counts.get(category, 0),
                 'percentage': round((amount / total_amount * 100), 2) if total_amount > 0 else 0.0
             }
             for i, (category, amount) in enumerate(sorted_categories)
