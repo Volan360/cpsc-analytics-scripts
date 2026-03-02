@@ -19,7 +19,7 @@ phases:
       - cd ..
       - echo Installing dependencies
       - pip install --upgrade pip
-      - pip install -r repo/requirements.txt -t ./package/
+      - pip install -r repo/requirements-lambda.txt -t ./package/
 
   pre_build:
     commands:
