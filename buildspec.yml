@@ -12,41 +12,43 @@ phases:
     runtime-versions:
       python: 3.12
     commands:
-      - echo "Cloning repository and checking out branch $BRANCH_NAME..."
+      - echo Cloning repository and checking out branch $BRANCH_NAME
       - git clone https://github.com/Volan360/cpsc-analytics-scripts.git repo
-      - cd repo && git checkout $BRANCH_NAME && cd ..
-      - echo "Installing dependencies..."
+      - cd repo
+      - git checkout $BRANCH_NAME
+      - cd ..
+      - echo Installing dependencies
       - pip install --upgrade pip
       - pip install -r repo/requirements.txt -t ./package/
 
   pre_build:
     commands:
-      - echo "Packaging Lambda deployment artifact for environment $ENVIRONMENT (branch $BRANCH_NAME)..."
+      - echo Packaging Lambda deployment artifact for environment $ENVIRONMENT branch $BRANCH_NAME
       - mkdir -p ./package
       - cp -r repo/src ./package/
-      - cd package && zip -r ../lambda-deployment-$ENVIRONMENT.zip . && cd ..
-      - echo "Package created: lambda-deployment-$ENVIRONMENT.zip"
+      - cd package
+      - zip -r ../lambda-deployment-$ENVIRONMENT.zip .
+      - cd ..
+      - echo Package created lambda-deployment-$ENVIRONMENT.zip
       - ls -lh lambda-deployment-$ENVIRONMENT.zip
 
   build:
     commands:
-      - echo "Uploading deployment package to S3..."
+      - echo Uploading deployment package to S3
       - aws s3 cp lambda-deployment-$ENVIRONMENT.zip s3://codepipeline-us-east-1-411077442627/analytics/lambda-deployment-$ENVIRONMENT.zip
-      - echo "Updating Lambda function code: cpsc-analytics-generate-$ENVIRONMENT"
+      - echo Updating Lambda function code cpsc-analytics-generate-$ENVIRONMENT
       - aws lambda update-function-code --function-name cpsc-analytics-generate-$ENVIRONMENT --s3-bucket codepipeline-us-east-1-411077442627 --s3-key analytics/lambda-deployment-$ENVIRONMENT.zip --region $AWS_DEFAULT_REGION
-      - echo "Waiting for generate function update to complete..."
+      - echo Waiting for generate function update to complete
       - aws lambda wait function-updated --function-name cpsc-analytics-generate-$ENVIRONMENT --region $AWS_DEFAULT_REGION
-      - echo "Updating Lambda function code: cpsc-analytics-report-$ENVIRONMENT"
+      - echo Updating Lambda function code cpsc-analytics-report-$ENVIRONMENT
       - aws lambda update-function-code --function-name cpsc-analytics-report-$ENVIRONMENT --s3-bucket codepipeline-us-east-1-411077442627 --s3-key analytics/lambda-deployment-$ENVIRONMENT.zip --region $AWS_DEFAULT_REGION
-      - echo "Waiting for report function update to complete..."
+      - echo Waiting for report function update to complete
       - aws lambda wait function-updated --function-name cpsc-analytics-report-$ENVIRONMENT --region $AWS_DEFAULT_REGION
 
   post_build:
     commands:
-      - echo "Analytics Lambda deployment to $ENVIRONMENT (branch $BRANCH_NAME) completed at $(date)"
-      - echo "Functions updated:"
-      - echo "  - cpsc-analytics-generate-$ENVIRONMENT"
-      - echo "  - cpsc-analytics-report-$ENVIRONMENT"
+      - echo Analytics Lambda deployment to $ENVIRONMENT branch $BRANCH_NAME completed at `date`
+      - echo Functions updated cpsc-analytics-generate-$ENVIRONMENT and cpsc-analytics-report-$ENVIRONMENT
 
 artifacts:
   files:
