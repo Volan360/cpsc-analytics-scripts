@@ -51,10 +51,10 @@ _report_handler = None
 def _load_handlers():
     global _analytics_handler, _report_handler
     if _analytics_handler is None:
-        from lambda_handlers.analytics_handler import handler as ah
+        from lambda_handlers.analytics_handler import lambda_handler as ah
         _analytics_handler = ah
     if _report_handler is None:
-        from lambda_handlers.report_handler import handler as rh
+        from lambda_handlers.report_handler import lambda_handler as rh
         _report_handler = rh
 
 

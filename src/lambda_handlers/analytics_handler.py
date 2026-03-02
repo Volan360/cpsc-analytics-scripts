@@ -182,7 +182,7 @@ def _run_analytics(
     raise ValueError(f"Unsupported analytics type: {analytics_type}")
 
 
-def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
+def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """
     Lambda entry point for POST /api/analytics/generate.
 
