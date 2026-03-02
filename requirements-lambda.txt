@@ -1,8 +1,9 @@
 # Runtime dependencies for Lambda deployment only.
 # boto3/botocore are excluded — already provided by the Lambda Python 3.12 runtime.
-# Heavy data-science packages (numpy, pandas, scikit-learn, matplotlib, seaborn,
-# kaleido, fpdf2) are excluded — they are not imported by any Lambda source file.
+# pandas, scikit-learn, matplotlib, seaborn, kaleido, fpdf2 are excluded —
+# not imported by any Lambda source file.
 # Dev/test tools (pytest, black, flake8, mypy, etc.) belong in requirements.txt only.
+numpy>=1.24.0
 plotly>=5.17.0
 networkx>=3.1
 jinja2>=3.1.0
