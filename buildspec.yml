@@ -5,21 +5,25 @@ env:
     ENVIRONMENT: "devl"
     AWS_DEFAULT_REGION: "us-east-1"
     AWS_ACCOUNT_ID: "453410498610"
+    BRANCH_NAME: "main"
 
 phases:
   install:
     runtime-versions:
       python: 3.12
     commands:
+      - echo "Cloning repository and checking out branch $BRANCH_NAME..."
+      - git clone https://github.com/Volan360/cpsc-analytics-scripts.git repo
+      - cd repo && git checkout $BRANCH_NAME && cd ..
       - echo "Installing dependencies..."
       - pip install --upgrade pip
-      - pip install -r requirements.txt -t ./package/
+      - pip install -r repo/requirements.txt -t ./package/
 
   pre_build:
     commands:
-      - echo "Packaging Lambda deployment artifact for environment $ENVIRONMENT..."
+      - echo "Packaging Lambda deployment artifact for environment $ENVIRONMENT (branch $BRANCH_NAME)..."
       - mkdir -p ./package
-      - cp -r src ./package/
+      - cp -r repo/src ./package/
       - cd package && zip -r ../lambda-deployment-${ENVIRONMENT}.zip . && cd ..
       - echo "Package created: lambda-deployment-${ENVIRONMENT}.zip"
       - ls -lh lambda-deployment-${ENVIRONMENT}.zip
@@ -51,7 +55,7 @@ phases:
 
   post_build:
     commands:
-      - echo "Analytics Lambda deployment to $ENVIRONMENT completed at $(date)"
+      - echo "Analytics Lambda deployment to $ENVIRONMENT (branch $BRANCH_NAME) completed at $(date)"
       - echo "Functions updated:"
       - echo "  - cpsc-analytics-generate-${ENVIRONMENT}"
       - echo "  - cpsc-analytics-report-${ENVIRONMENT}"
