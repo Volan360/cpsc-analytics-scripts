@@ -17,20 +17,25 @@ logger = logging.getLogger(__name__)
 class DynamoDBClient:
     """Client for accessing DynamoDB tables."""
     
-    def __init__(self, environment: str = "devl", profile: str = "cpsc-devops", region: str = "us-east-1"):
+    def __init__(self, environment: str = "devl", profile: Optional[str] = None, region: str = "us-east-1"):
         """
         Initialize DynamoDB client.
         
         Args:
             environment: Environment name (devl, acpt, prod)
-            profile: AWS profile name
+            profile: AWS profile name. Only used for local development.
+                     On Lambda, leave as None to use the IAM role credentials.
             region: AWS region
         """
         self.environment = environment
         self.region = region
         
-        # Initialize boto3 session with profile
-        session = boto3.Session(profile_name=profile, region_name=region)
+        # Use named profile only when explicitly provided (local dev).
+        # On Lambda, profile_name must be omitted so boto3 uses the IAM role.
+        session_kwargs = {"region_name": region}
+        if profile:
+            session_kwargs["profile_name"] = profile
+        session = boto3.Session(**session_kwargs)
         self.dynamodb = session.resource('dynamodb')
         
         # Table names
