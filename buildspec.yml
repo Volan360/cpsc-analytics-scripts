@@ -33,25 +33,13 @@ phases:
       - echo "Uploading deployment package to S3..."
       - aws s3 cp lambda-deployment-${ENVIRONMENT}.zip s3://codepipeline-us-east-1-411077442627/analytics/lambda-deployment-${ENVIRONMENT}.zip
       - echo "Updating Lambda function code: cpsc-analytics-generate-${ENVIRONMENT}"
-      - aws lambda update-function-code
-          --function-name cpsc-analytics-generate-${ENVIRONMENT}
-          --s3-bucket codepipeline-us-east-1-411077442627
-          --s3-key analytics/lambda-deployment-${ENVIRONMENT}.zip
-          --region ${AWS_DEFAULT_REGION}
+      - aws lambda update-function-code --function-name cpsc-analytics-generate-${ENVIRONMENT} --s3-bucket codepipeline-us-east-1-411077442627 --s3-key analytics/lambda-deployment-${ENVIRONMENT}.zip --region ${AWS_DEFAULT_REGION}
       - echo "Waiting for generate function update to complete..."
-      - aws lambda wait function-updated
-          --function-name cpsc-analytics-generate-${ENVIRONMENT}
-          --region ${AWS_DEFAULT_REGION}
+      - aws lambda wait function-updated --function-name cpsc-analytics-generate-${ENVIRONMENT} --region ${AWS_DEFAULT_REGION}
       - echo "Updating Lambda function code: cpsc-analytics-report-${ENVIRONMENT}"
-      - aws lambda update-function-code
-          --function-name cpsc-analytics-report-${ENVIRONMENT}
-          --s3-bucket codepipeline-us-east-1-411077442627
-          --s3-key analytics/lambda-deployment-${ENVIRONMENT}.zip
-          --region ${AWS_DEFAULT_REGION}
+      - aws lambda update-function-code --function-name cpsc-analytics-report-${ENVIRONMENT} --s3-bucket codepipeline-us-east-1-411077442627 --s3-key analytics/lambda-deployment-${ENVIRONMENT}.zip --region ${AWS_DEFAULT_REGION}
       - echo "Waiting for report function update to complete..."
-      - aws lambda wait function-updated
-          --function-name cpsc-analytics-report-${ENVIRONMENT}
-          --region ${AWS_DEFAULT_REGION}
+      - aws lambda wait function-updated --function-name cpsc-analytics-report-${ENVIRONMENT} --region ${AWS_DEFAULT_REGION}
 
   post_build:
     commands:
